@@ -60,7 +60,7 @@ td{text-align:right;padding:8px 10px;font-feature-settings:'tnum';border-top:1px
 <div class="hl">ARPL experiment</div>
 <div class="ht">Plan display experiment dashboard</div>
 <div class="hs"><span id="dr">Loading...</span>
-<button class="btn" id="rb" onclick="loadData()"><span id="ri">\u21bb</span> Refresh</button>
+<button class="btn" id="rb" onclick="loadData()"><span id="ri">↻</span> Refresh</button>
 <button class="btn" onclick="var e=document.getElementById('dbg');e.style.display=e.style.display==='none'?'block':'none'">Debug</button></div>
 <div class="st" id="st"></div>
 <div class="dbg" id="dbg"></div>
@@ -73,7 +73,7 @@ td{text-align:right;padding:8px 10px;font-feature-settings:'tnum';border-top:1px
 <div class="tg" id="vwT" style="margin-bottom:20px;width:fit-content"></div>
 <div class="bc" id="bcr"></div>
 <div id="ct"></div>
-<div class="ft"><b>Metrics guide</b> \u2014 LBC = login before conversion. Rev/Login = ARPL \u00D7 LBC Conv%. Combo = 1 desktop + 1 mobile counted as one licence. Plan mix excludes standalone mobile.</div>
+<div class="ft"><b>Metrics guide</b> — LBC = login before conversion. Rev/Login = ARPL × LBC Conv%. Combo = 1 desktop + 1 mobile counted as one licence. Plan mix excludes standalone mobile.</div>
 
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <script>
@@ -83,7 +83,7 @@ var SRC=['Whatsapp Bot','partner_dashboard','Manual Upload','DB Upload'];
 var SLB={all:'All sources',partner_dashboard:'Partner dashboard','Whatsapp Bot':'WhatsApp Bot','Manual Upload':'Manual upload','DB Upload':'DB upload'};
 var DATA={},S={ch:'nontp',tm:'farming',src:'all',vw:'metrics'},dbg=[];
 function log(m){dbg.push(m)}
-function inr(v){return '\u20B9'+(v||0).toLocaleString('en-IN')}
+function inr(v){return '₹'+(v||0).toLocaleString('en-IN')}
 function pct(v){return(v||0).toFixed(1)+'%'}
 function num(v){return(v||0).toLocaleString('en-IN')}
 function best(d,c){var v=d.map(function(r){return r[c]});var m=Math.max.apply(null,v);return m>0?v.indexOf(m):-1}
@@ -132,7 +132,7 @@ for(var k in dc)r[arm].dur[k]=[dc[k],Math.round(dc[k]/t*1000)/10];
 for(var k in tic)r[arm].tier[k]=[tic[k],Math.round(tic[k]/t*1000)/10]});return r}
 
 function calcTT(sub){var c=sub.filter(function(x){return x._cv});var r={};
-var bs=[['0s',function(t){return!t||t<=0}],['\u22641m',function(t){return t>0&&t<=60}],['1-5m',function(t){return t>60&&t<=300}],['5-10m',function(t){return t>300&&t<=600}],['>10m',function(t){return t>600}]];
+var bs=[['0s',function(t){return!t||t<=0}],['≤1m',function(t){return t>0&&t<=60}],['1-5m',function(t){return t>60&&t<=300}],['5-10m',function(t){return t>300&&t<=600}],['>10m',function(t){return t>600}]];
 ARMS.forEach(function(arm){var a=c.filter(function(x){return x._exp===arm});r[arm]=[];
 bs.forEach(function(b){var s=a.filter(function(x){return b[1](x._tt)});
 r[arm].push([b[0],s.length,s.length?Math.round(s.reduce(function(sm,x){return sm+x._rev},0)/s.length):0])})});return r}
@@ -175,7 +175,7 @@ var exp=rows.filter(function(r){return r._exp});log('Experiment:'+exp.length);
 
 var dats=rows.map(function(r){return r._ad?r._ad.toISOString().slice(0,10):''}).filter(Boolean).sort();
 var ud=new Set(dats).size;
-document.getElementById('dr').textContent=dats.length?dats[0]+' to '+dats[dats.length-1]+' \u00B7 '+ud+' days \u00B7 '+exp.length+' exp leads':'No dates';
+document.getElementById('dr').textContent=dats.length?dats[0]+' to '+dats[dats.length-1]+' · '+ud+' days · '+exp.length+' exp leads':'No dates';
 
 var segs={};
 var nt=exp.filter(function(r){return r.TP_Flag==='NON_TP'}),tp=exp.filter(function(r){return r.TP_Flag==='TP'});
@@ -184,7 +184,7 @@ segs.nontp_all=buildSeg(nt);segs.nontp_hunting_all=buildSeg(hu);segs.nontp_farmi
 SRC.forEach(function(s){
 [['nontp_hunting',hu],['nontp_farming',fa],['tp',tp]].forEach(function(p){
 var ss=p[1].filter(function(r){return r.data_source===s});if(ss.length>=15)segs[p[0]+'_'+s]=buildSeg(ss)})});
-DATA=segs;st.textContent='Refreshed '+new Date().toLocaleTimeString()+' \u00B7 '+exp.length+' experiment leads';
+DATA=segs;st.textContent='Refreshed '+new Date().toLocaleTimeString()+' · '+exp.length+' experiment leads';
 document.getElementById('dbg').textContent=dbg.join('\n');render()})
 }
 
@@ -208,7 +208,7 @@ var vt=document.getElementById('vwT');vt.innerHTML='';
 var lb={metrics:'Core metrics',plans:'Plan mix',talktime:'Talktime',payment:'Payment'};
 vt.appendChild(mktb(lb[v],S.vw===v,function(){S.vw=v;renderFilters();render()}))});
 var p=[S.ch==='tp'?'TP':'Non-TP'];if(S.ch==='nontp')p.push(S.tm==='farming'?'Farming':'Hunting');
-if(S.src!=='all')p.push(SLB[S.src]||S.src);document.getElementById('bcr').textContent=p.join(' \u2192 ')}
+if(S.src!=='all')p.push(SLB[S.src]||S.src);document.getElementById('bcr').textContent=p.join(' → ')}
 
 function render(){
 var k=segKey(),seg=DATA[k],el=document.getElementById('ct');
@@ -280,7 +280,7 @@ types.forEach(function(t){var d=pt[t[0]];if(!d)return;
 h+='<div class="ptci"><div class="ptcn">'+t[1]+'</div>';
 ARMS.forEach(function(a,i){var v=d[a]||[0,0];
 h+='<div class="ptcr"><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:'+AC[i]+'"></span>'+a+'</span>'
-+'<span><strong>'+v[0]+'</strong> \u00B7 '+inr(v[1])+'</span></div>'});
++'<span><strong>'+v[0]+'</strong> · '+inr(v[1])+'</span></div>'});
 h+='</div>'});return h+'</div>'}
 
 renderFilters();
