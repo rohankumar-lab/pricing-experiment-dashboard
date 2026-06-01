@@ -189,8 +189,7 @@ r._ppv=String(r.plan_price_view||'').trim().toLowerCase();});
 var tot=rows.length;ROWS=rows.filter(function(r){return r._ad&&dateInt(r._ad)>=20260330});
 log('After date filter:'+ROWS.length+' (excl '+(tot-ROWS.length)+')');
 st.textContent='Refreshed '+new Date().toLocaleTimeString()+' · '+ROWS.filter(function(r){return r._exp}).length+' experiment leads';
-rebuildAndRender()})
-}
+rebuildAndRender()});
 }
 
 function segKey(){if(S.ch==='tp')return S.src==='all'?'tp_all':'tp_'+S.src;return S.src==='all'?'nontp_'+S.tm+'_all':'nontp_'+S.tm+'_'+S.src}
