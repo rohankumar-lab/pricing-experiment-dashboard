@@ -17,6 +17,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .fr{display:flex;align-items:center;gap:8px}.flb{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;width:60px;flex-shrink:0}
 .tg{display:flex;gap:3px;background:var(--cd);border-radius:8px;padding:3px;flex-wrap:wrap}
 .tb{padding:7px 16px;font-size:13px;font-weight:400;border-radius:6px;cursor:pointer;border:none;font-family:inherit;background:transparent;color:var(--t3)}.tb.on{background:var(--ab);color:var(--af);font-weight:500}
+.dd{padding:7px 10px;font-size:13px;border-radius:6px;border:0.5px solid var(--bd);background:var(--cd);color:var(--t1);font-family:inherit;cursor:pointer;min-width:130px}
+.dd:focus{outline:none;border-color:var(--t2)}
 .bc{font-size:14px;color:var(--t2);margin-bottom:16px;font-weight:500}
 .cds{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
 .ac{flex:1;min-width:220px;border-radius:10px;padding:16px 18px;border:1.5px solid var(--bd);background:var(--cd)}
@@ -70,6 +72,8 @@ td{text-align:right;padding:8px 10px;font-feature-settings:'tnum';border-top:1px
 <div class="fr" id="tmR" style="display:none"><span class="flb">Team</span><div class="tg" id="tmT"></div></div>
 <div class="fr"><span class="flb">Source</span><div class="tg" id="srT"></div></div>
 <div class="fr"><span class="flb">Price page</span><div class="tg" id="ppvT"></div></div>
+<div class="fr"><span class="flb">Month</span><select class="dd" id="mthD" onchange="S.month=this.value;S.week='all';document.getElementById('wkD').value='all';rebuildAndRender()"><option value="all">All months</option></select></div>
+<div class="fr"><span class="flb">Week</span><select class="dd" id="wkD" onchange="S.week=this.value;rebuildAndRender()"><option value="all">All weeks</option></select></div>
 </div>
 <div class="tg" id="vwT" style="margin-bottom:20px;width:fit-content"></div>
 <div class="bc" id="bcr"></div>
@@ -82,7 +86,7 @@ var SID='1l232fqrUCeGQerILhVH6CltrIHNpJOUKK4qmF-VHCwc',GID='316774704';
 var ARMS=['DEFAULT','EXP1','EXP2'],AC=['#2563eb','#059669','#dc2626'],AL=['Silver, Gold','Gold, Retail Pro','Gold, Platinum'];
 var SRC=['Whatsapp Bot','partner_dashboard','Manual Upload','DB Upload'];
 var SLB={all:'All sources',partner_dashboard:'Partner dashboard','Whatsapp Bot':'WhatsApp Bot','Manual Upload':'Manual upload','DB Upload':'DB upload'};
-var DATA={},ROWS=[],S={ch:'nontp',tm:'farming',src:'all',vw:'metrics',ppv:'all'},dbg=[];
+var DATA={},ROWS=[],S={ch:'nontp',tm:'farming',src:'all',vw:'metrics',ppv:'all',month:'all',week:'all'},dbg=[];
 function log(m){dbg.push(m)}
 function inr(v){return '₹'+(v||0).toLocaleString('en-IN')}
 function pct(v){return(v||0).toFixed(1)+'%'}
@@ -147,13 +151,81 @@ function buildSeg(sub){return{core:calcCore(sub),plan:calcPlan(sub),tt:calcTT(su
 
 function rebuildAndRender(){
 var exp=ROWS.filter(function(r){return r._exp});
+
+// PPV filter
 var ppvVals={};exp.forEach(function(r){ppvVals[r._ppv||'(blank)']=(ppvVals[r._ppv||'(blank)']||0)+1});
 log('plan_price_view values: '+JSON.stringify(ppvVals));
 if(S.ppv!=='all')exp=exp.filter(function(r){return r._ppv===S.ppv});
-log('After ppv filter ('+S.ppv+'): '+exp.length);
+
+// Derive month/week options from full ROWS (so dropdowns always show all options)
+var allExp=ROWS.filter(function(r){return r._exp});
+var months={},weeks={};
+allExp.forEach(function(r){
+  if(!r._ad)return;
+  var mo=r._ad.getFullYear()+'-'+(r._ad.getMonth()<9?'0':'')+(r._ad.getMonth()+1);
+  months[mo]=1;
+  // ISO week
+  var d=new Date(r._ad);d.setHours(0,0,0,0);d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+  var wk=d.getFullYear()+'-W'+(d.getMonth()<9?'0':'')+Math.ceil((((d-new Date(d.getFullYear(),0,4))/(86400000))+4)/7);
+  weeks[wk]=1;
+});
+var mthKeys=Object.keys(months).sort();
+var wkKeys=Object.keys(weeks).sort();
+
+// Populate month dropdown
+var mthD=document.getElementById('mthD');
+var curMth=mthD.value;
+mthD.innerHTML='<option value="all">All months</option>';
+mthKeys.forEach(function(m){
+  var opt=document.createElement('option');
+  opt.value=m;
+  // Format: "Apr 2026"
+  var d=new Date(m+'-01');
+  opt.textContent=d.toLocaleString('default',{month:'short',year:'numeric'});
+  if(m===S.month)opt.selected=true;
+  mthD.appendChild(opt)});
+
+// Populate week dropdown — only show weeks within selected month, or all
+var wkD=document.getElementById('wkD');
+wkD.innerHTML='<option value="all">All weeks</option>';
+var wkFilter=S.month!=='all'?wkKeys.filter(function(w){return w.startsWith(S.month.slice(0,4))||true}):wkKeys;
+// Filter weeks to only those with data in the selected month if month selected
+var relevantWks=wkKeys;
+if(S.month!=='all'){
+  relevantWks=wkKeys.filter(function(w){
+    // Check if any row in this week falls in selected month
+    return allExp.some(function(r){
+      if(!r._ad)return false;
+      var mo=r._ad.getFullYear()+'-'+(r._ad.getMonth()<9?'0':'')+(r._ad.getMonth()+1);
+      if(mo!==S.month)return false;
+      var d=new Date(r._ad);d.setHours(0,0,0,0);d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+      var rw=d.getFullYear()+'-W'+(d.getMonth()<9?'0':'')+Math.ceil((((d-new Date(d.getFullYear(),0,4))/(86400000))+4)/7);
+      return rw===w;
+    })});}
+relevantWks.forEach(function(w){
+  var opt=document.createElement('option');
+  opt.value=w;
+  opt.textContent=w;
+  if(w===S.week)opt.selected=true;
+  wkD.appendChild(opt)});
+
+// Apply month/week filters to exp
+if(S.month!=='all'){
+  exp=exp.filter(function(r){
+    if(!r._ad)return false;
+    var mo=r._ad.getFullYear()+'-'+(r._ad.getMonth()<9?'0':'')+(r._ad.getMonth()+1);
+    return mo===S.month});}
+if(S.week!=='all'){
+  exp=exp.filter(function(r){
+    if(!r._ad)return false;
+    var d=new Date(r._ad);d.setHours(0,0,0,0);d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+    var wk=d.getFullYear()+'-W'+(d.getMonth()<9?'0':'')+Math.ceil((((d-new Date(d.getFullYear(),0,4))/(86400000))+4)/7);
+    return wk===S.week});}
+
+log('After ppv/month/week filter: '+exp.length);
 var dats=ROWS.map(function(r){return r._ad?r._ad.toISOString().slice(0,10):''}).filter(Boolean).sort();
 var ud=new Set(dats).size;
-document.getElementById('dr').textContent=dats.length?dats[0]+' to '+dats[dats.length-1]+' · '+ud+' days · '+exp.length+' exp leads':'No dates';
+document.getElementById('dr').textContent=dats.length?dats[0]+' to '+dats[dats.length-1]+' · '+ud+' days · '+exp.length+' exp leads (filtered)':'No dates';
 var segs={};
 var nt=exp.filter(function(r){return r.TP_Flag==='NON_TP'}),tp=exp.filter(function(r){return r.TP_Flag==='TP'});
 var hu=nt.filter(function(r){return r.ipt_team==='hunting'}),fa=nt.filter(function(r){return r.ipt_team==='farming'});
@@ -217,6 +289,8 @@ vt.appendChild(mktb(lb[v],S.vw===v,function(){S.vw=v;renderFilters();render()}))
 var p=[S.ch==='tp'?'TP':'Non-TP'];if(S.ch==='nontp')p.push(S.tm==='farming'?'Farming':'Hunting');
 if(S.src!=='all')p.push(SLB[S.src]||S.src);
 if(S.ppv!=='all')p.push(S.ppv==='visited'?'Pricing page visited':'Pricing page not visited');
+if(S.month!=='all'){var d=new Date(S.month+'-01');p.push(d.toLocaleString('default',{month:'short',year:'numeric'}));}
+if(S.week!=='all')p.push(S.week);
 document.getElementById('bcr').textContent=p.join(' → ')}
 
 function render(){
